@@ -132,40 +132,55 @@ function isBlank(value: unknown): boolean {
 }
 
 function isNationalIdDuplicated(nationalId: string) {
-  const duplicated = patients.find((patient) => patient.nationalId === nationalId);
-  
+  const duplicated = patients.find(
+    (patient) => patient.nationalId === nationalId,
+  );
+
   return duplicated != null;
 }
 
-function validatePatientInput(body: any): string | null {
+function validatePatientInput(body: any): string[] {
+  const errors: string[] = [];
+
+  // Nome
   if (isBlank(body?.name)) {
-    return "O campo 'name' e obrigatorio.";
-  }
-  if (isBlank(body?.birthDate) || !ISO_DATE.test(body.birthDate)) {
-    return "O campo 'birthDate' deve ser AAAA-MM-DD.";
+    errors.push("O campo 'name' é obrigatório.");
   }
 
+  // Nascimento
+  if (isBlank(body?.birthDate)) {
+    errors.push("O campo 'birthDate' é obrigatório.");
+  } else if (!ISO_DATE.test(body.birthDate)) {
+    errors.push("O campo 'birthDate' deve estar no formato AAAA-MM-DD.");
+  } else {
+    const birthDate = new Date(`${body.birthDate}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (birthDate > today) {
+      errors.push("A data de nascimento não pode ser no futuro.");
+    }
+  }
+
+  // CNS
   if (isBlank(body?.nationalId)) {
-    return "O campo 'nationalId' e obrigatorio.";
+    errors.push("O campo 'nationalId' é obrigatório.");
+  } else {
+    if (!/^\d+$/.test(body.nationalId)) {
+      errors.push("O campo 'nationalId' deve conter somente números.");
+    } else if (isNationalIdDuplicated(body.nationalId)) {
+      errors.push("CNS já está cadastrado.");
+    }
   }
 
-  if (!Number.isInteger(Number(body?.nationalId))) {
-    return "O campo 'nationalId' deve conter somente numero.";
-  }
-
-  if (isNationalIdDuplicated(body?.nationalId)) {
-    return "CNS ja esta cadastrado."
-  }
-
-  return null; // null = esta tudo certo
+  return errors;
 }
-// se a pessoa mandou e se é só nº
 
 app.post("/api/patients", (req, response) => {
-  const error = validatePatientInput(req.body);
+  const errors = validatePatientInput(req.body);
 
-  if (error) {
-    response.status(400).json({ error });
+  if (errors.length > 0) {
+    response.status(400).json({ errors });
     return;
   }
 
@@ -194,4 +209,3 @@ app.post("/api/patients", (req, response) => {
 app.listen(PORT, () => {
   console.log(`Mini-Prontuario no ar em http://localhost:${PORT}`);
 });
-  
