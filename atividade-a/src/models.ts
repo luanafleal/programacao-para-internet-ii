@@ -5,3 +5,11 @@ export type Patient = {
   nationalId: string;
   active: boolean;
 };
+
+export type PatientRow = {
+  id: number;
+  name: string;
+  birth_date: string;
+  national_id: string;
+  active: number;
+};

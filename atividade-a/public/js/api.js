@@ -20,7 +20,7 @@
  * ENCONTRO 2: trocaremos por "/api/patients" — e nada mais no
  * frontend vai precisar mudar. Guarde essa promessa.
  */
-const PATIENTS_URL = "./mock/patients.json";
+const PATIENTS_URL = "/api/patients";
 
 /**
  * Busca a lista de pacientes.

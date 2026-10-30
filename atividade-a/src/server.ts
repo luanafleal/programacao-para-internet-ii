@@ -11,69 +11,11 @@
  */
 import express from "express";
 import { request } from "node:http";
-import { Patient } from "./models";
+import { db } from "./database";
+import { Patient, PatientRow } from "./models";
 
 const app = express();
 const PORT = 3000;
-
-const patients: Patient[] = [
-  {
-    id: 1,
-    name: "Ana Beatriz Nogueira",
-    birthDate: "1991-03-14",
-    nationalId: "700012345678901",
-    active: true,
-  },
-  {
-    id: 2,
-    name: "Carlos Eduardo Matias",
-    birthDate: "1978-11-02",
-    nationalId: "700012345678902",
-    active: true,
-  },
-  {
-    id: 3,
-    name: "Dulcineia Rocha Lima",
-    birthDate: "1955-07-23",
-    nationalId: "700012345678903",
-    active: true,
-  },
-  {
-    id: 4,
-    name: "Eduardo Vasconcelos",
-    birthDate: "2003-01-09",
-    nationalId: "700012345678904",
-    active: false,
-  },
-  {
-    id: 5,
-    name: "Fernanda Passos Alves",
-    birthDate: "1986-09-30",
-    nationalId: "700012345678905",
-    active: true,
-  },
-  {
-    id: 6,
-    name: "Gustavo Rios Camelo",
-    birthDate: "1999-05-17",
-    nationalId: "700012345678906",
-    active: true,
-  },
-  {
-    id: 7,
-    name: "Helena Marques Sa",
-    birthDate: "1968-12-05",
-    nationalId: "700012345678907",
-    active: false,
-  },
-  {
-    id: 8,
-    name: "Igor Bastos Teixeira",
-    birthDate: "1994-08-21",
-    nationalId: "700012345678908",
-    active: true,
-  },
-];
 
 // ------------------------------------------------------------
 // MIDDLEWARES - executam ANTES das rotas, em ordem
@@ -103,16 +45,38 @@ app.get("/api/health", (req, response) => {
 // GET /api/patients  ->  200 com um ARRAY de pacientes.
 // Comece devolvendo um array fixo, escrito na mao. Sem banco ainda.
 // ============================================================
+function toPatientJson(row: PatientRow): Patient {
+  return {
+    id: row.id,
+    name: row.name,
+    birthDate: row.birth_date,
+    nationalId: row.national_id,
+    active: row.active === 1,
+  };
+}
+
 app.get("/api/patients", (req, response) => {
   const filters = req.query;
 
-  let filteredList = [...patients];
-  console.log("REQUEST", filters);
+  let rows: PatientRow[];
+
   if (filters.active === "true") {
-    filteredList = filteredList.filter((patient: Patient) => patient.active);
+    rows = db
+      .prepare(
+        "SELECT id, name, birth_date, national_id, active FROM patients WHERE active = ? ORDER BY name",
+      )
+      .all(1) as PatientRow[];
+  } else {
+    rows = db
+      .prepare(
+        "SELECT id, name, birth_date, national_id, active FROM patients ORDER BY name",
+      )
+      .all() as PatientRow[];
   }
 
-  response.json(filteredList);
+  const patients = rows.map(toPatientJson);
+
+  response.json(patients);
 });
 
 // ============================================================
@@ -131,12 +95,12 @@ function isBlank(value: unknown): boolean {
   return typeof value !== "string" || value.trim() === "";
 }
 
-function isNationalIdDuplicated(nationalId: string) {
-  const duplicated = patients.find(
-    (patient) => patient.nationalId === nationalId,
-  );
+function isNationalIdDuplicated(nationalId: string): boolean {
+  const row = db
+    .prepare("SELECT id FROM patients WHERE national_id = ?")
+    .get(nationalId);
 
-  return duplicated != null;
+  return row != null;
 }
 
 function validatePatientInput(body: any): string[] {
@@ -184,17 +148,25 @@ app.post("/api/patients", (req, response) => {
     return;
   }
 
-  const newPatient: Patient = {
-    id: Math.max(...patients.map((patient) => patient.id), 0) + 1,
-    name: req.body.name.trim(),
-    birthDate: req.body.birthDate,
-    nationalId: req.body.nationalId,
-    active: true,
-  };
+  const result = db
+    .prepare(
+      `
+      INSERT INTO patients (
+        name,
+        birth_date,
+        national_id,
+        active
+      )
+      VALUES (?, ?, ?, ?)
+    `,
+    )
+    .run(req.body.name.trim(), req.body.birthDate, req.body.nationalId, 1);
 
-  patients.push(newPatient);
+  const row = db
+    .prepare("SELECT * FROM patients WHERE id = ?")
+    .get(Number(result.lastInsertRowid)) as PatientRow;
 
-  response.status(201).json(newPatient);
+  response.status(201).json(toPatientJson(row));
 });
 
 // ============================================================
@@ -204,6 +176,22 @@ app.post("/api/patients", (req, response) => {
 //   const rows = db.prepare("SELECT ... FROM patients ORDER BY name").all();
 // E crie GET /api/patients/:id devolvendo 404 quando nao existir.
 // ============================================================
+app.get("/api/patients/:id", (req, response) => {
+  const id = Number(req.params.id);
+
+  const row = db.prepare("SELECT * FROM patients WHERE id = ?").get(id) as
+    | PatientRow
+    | undefined;
+
+  if (!row) {
+    response.status(404).json({
+      error: "Paciente não encontrado.",
+    });
+    return;
+  }
+
+  response.json(toPatientJson(row));
+});
 
 // ------------------------------------------------------------
 app.listen(PORT, () => {
