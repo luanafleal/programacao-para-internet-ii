@@ -71,3 +71,19 @@ export async function getPatient(id) {
    mensagem e repasse para quem chamou, em vez de inventar um
    texto genérico.
    ============================================================ */
+export async function createPatient(patient) {
+  const response = await fetch(PATIENTS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patient),
+  });
+
+  // O servidor já nos deu uma mensagem boa quando recusou (400).
+  // Repassar essa mensagem é melhor que inventar um texto genérico.
+  if (!response.ok) {
+    const problem = await response.json().catch(() => ({}));
+    throw new Error(problem.errors?.join("; ") ?? `Falha ao cadastrar (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}

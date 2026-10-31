@@ -16,18 +16,34 @@
  * Nunca o contrário. A tela nunca é a fonte da verdade.
  * ============================================================
  */
-import { listPatients } from "./api.js";
-import { subscribe, getState, setPatients, setSearchTerm, setOnlyActive, setError } from "./state.js";
-import { renderPatientList, renderCounter, renderLoading, renderError } from "./render.js";
+import { listPatients, createPatient } from "./api.js";
+import {
+  subscribe,
+  getState,
+  setPatients,
+  setSearchTerm,
+  setOnlyActive,
+  setError,
+  addPatient,
+} from "./state.js";
+import {
+  renderPatientList,
+  renderCounter,
+  renderLoading,
+  renderError,
+} from "./render.js";
 
-// document.documentElement.style.colorScheme = "dark";
-// document.documentElement.dataset.tema = "escuro";
 /* --- Os elementos que existem na página. Buscamos UMA vez. --- */
 const searchInput = document.querySelector("#search-input");
 const onlyActiveInput = document.querySelector("#only-active-input");
 const patientListElement = document.querySelector("#patient-list");
 const resultCounterElement = document.querySelector("#result-counter");
 const buttonTheme = document.querySelector("#dark-mode-input");
+const nameInput = document.querySelector("#name-input");
+const birthDateInput = document.querySelector("#birth-date-input");
+const nationalIdInput = document.querySelector("#national-id-input");
+const saveButton = document.querySelector("#save-button");
+const formFeedbackElement = document.querySelector("#form-feedback");
 
 /**
  * A ÚNICA função que desenha a tela inteira.
@@ -46,8 +62,16 @@ function renderApp(state) {
     return;
   }
 
-  renderPatientList(state.visiblePatients, state.searchTerm, patientListElement);
-  renderCounter(state.visiblePatients.length, state.patients.length, resultCounterElement);
+  renderPatientList(
+    state.visiblePatients,
+    state.searchTerm,
+    patientListElement,
+  );
+  renderCounter(
+    state.visiblePatients.length,
+    state.patients.length,
+    resultCounterElement,
+  );
 }
 
 /* --- Eventos do usuário viram AÇÕES, nunca alterações de DOM --- */
@@ -69,14 +93,52 @@ function applyTheme(isDark) {
     delete document.documentElement.dataset.tema;
   }
 
-  document.documentElement.style.colorScheme =
-    isDark ? "dark" : "light";
+  document.documentElement.style.colorScheme = isDark ? "dark" : "light";
 }
 
 buttonTheme.addEventListener("change", (event) => {
   applyTheme(event.target.checked);
 });
 
+/**
+ * Cadastro de paciente.
+ *
+ * A ordem importa e é sempre a mesma:
+ *   1. desabilita o botão  (evita duplo clique — POST não é idempotente)
+ *   2. chama a camada de comunicação
+ *   3. em caso de sucesso, atualiza o ESTADO (nunca o DOM direto)
+ *   4. em caso de erro, mostra a mensagem que veio do servidor
+ *   5. reabilita o botão, deu certo ou não
+ */
+saveButton.addEventListener("click", async () => {
+  saveButton.disabled = true;
+  setFeedback("Enviando…", null);
+
+  try {
+    const created = await createPatient({
+      name: nameInput.value,
+      birthDate: birthDateInput.value,
+      nationalId: nationalIdInput.value,
+    });
+
+    addPatient(created);
+    setFeedback(`Paciente #${created.id} cadastrado.`, "success");
+    nameInput.value = "";
+    birthDateInput.value = "";
+    nationalIdInput.value = "";
+  } catch (error) {
+    setFeedback(error.message, "error");
+  } finally {
+    saveButton.disabled = false;
+  }
+});
+
+function setFeedback(message, kind) {
+  formFeedbackElement.textContent = message;
+  formFeedbackElement.className = kind
+    ? `patient-form__feedback patient-form__feedback--${kind}`
+    : "patient-form__feedback";
+}
 
 /* --- Sempre que o estado mudar, a tela é redesenhada --- */
 subscribe(renderApp);

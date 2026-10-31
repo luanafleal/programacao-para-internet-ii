@@ -32,6 +32,37 @@
         Mode escuro
       </label>
     </div>
+
+    <!-- ------------------------------------------------------
+         Cadastro de paciente.
+         Note que NÃO usamos <form>: assim o navegador não tenta
+         recarregar a página. O envio é 100% nosso, via fetch.
+    ------------------------------------------------------- -->
+    <section class="patient-form" aria-label="Cadastrar novo paciente">
+      <h2 class="patient-form__title">Novo paciente</h2>
+
+      <div class="patient-form__grid">
+        <div>
+          <label class="form-label" for="name-input">Nome completo</label>
+          <input id="name-input" class="form-control" type="text" autocomplete="off" />
+        </div>
+        <div>
+          <label class="form-label" for="birth-date-input">Data de nascimento</label>
+          <input id="birth-date-input" class="form-control" type="date" />
+        </div>
+        <div>
+          <label class="form-label" for="national-id-input">CNS</label>
+          <input id="national-id-input" class="form-control" type="text" autocomplete="off" />
+        </div>
+      </div>
+
+      <button id="save-button" class="btn btn-success mt-3" type="button">
+        Cadastrar paciente
+      </button>
+
+      <p id="form-feedback" class="patient-form__feedback" role="alert"></p>
+    </section>
+
     <!-- ------------------------------------------------------
          Barra de filtros.
          Nenhum evento é registrado aqui: isso é papel do app.js.

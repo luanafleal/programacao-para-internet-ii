@@ -51,7 +51,7 @@ function notify() {
  * Devolve uma FOTOGRAFIA do estado, já com os dados derivados.
  * Devolvemos uma cópia para que ninguém de fora consiga alterar
  * o estado por acidente.
-*/
+ */
 
 export function getState() {
   return {
@@ -115,6 +115,18 @@ export function setSearchTerm(term) {
 /** Liga/desliga o filtro de pacientes ativos. */
 export function setOnlyActive(onlyActive) {
   state.onlyActive = onlyActive;
+  notify();
+}
+
+/**
+ * Acrescenta um paciente recém-criado à lista.
+ *
+ * Repare: não recarregamos tudo do servidor. O servidor já nos
+ * devolveu o recurso criado (com o id que ele gerou), então
+ * basta acrescentá-lo. Uma requisição a menos.
+ */
+export function addPatient(patient) {
+  state.patients = [...state.patients, patient];
   notify();
 }
 

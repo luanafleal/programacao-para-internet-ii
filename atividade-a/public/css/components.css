@@ -93,7 +93,7 @@
   border: 1px dashed var(--cor-borda-tracejada);
   background-color:  var(--cor-fundo);
   .patient-card__name {
-    text-decoration: line-through;
+  text-decoration: line-through;
   }
 }
 
@@ -142,4 +142,48 @@
 .theme-button-container {
     text-align: right;
     margin-bottom: 5px;
+}
+
+/* ------------------------------------------------------------
+   BLOCO: patient-form
+   ------------------------------------------------------------ */
+.patient-form {
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+  box-shadow: var(--sombra-1);
+  padding: var(--espaco-4);
+  margin-bottom: var(--espaco-5);
+}
+
+.patient-form__title {
+  margin: 0 0 var(--espaco-4);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.patient-form__grid {
+  display: grid;
+  grid-template-columns: 1fr;      /* celular: campos empilhados */
+  gap: var(--espaco-3);
+}
+
+@media (min-width: 768px) {
+  .patient-form__grid {
+    grid-template-columns: 2fr 1fr 1.5fr;
+  }
+}
+
+.patient-form__feedback {
+  margin: var(--espaco-3) 0 0;
+  font-size: 0.875rem;
+  min-height: 1.25rem;
+}
+
+.patient-form__feedback--error {
+  color: var(--cor-alerta-escura);
+}
+
+.patient-form__feedback--success {
+  color: var(--cor-marca-escura);
 }
