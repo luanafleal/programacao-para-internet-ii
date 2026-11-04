@@ -9,10 +9,10 @@
  * A separacao em camadas chega na Semana 03. Ate la, o que
  * queremos e que voce saiba exatamente o que cada linha faz.
  */
-import express from "express";
+import express, { response } from "express";
 import { request } from "node:http";
 import { db } from "./database";
-import { Patient, PatientRow } from "./models";
+import { Patient, PatientRow, EncounterRow } from "./models";
 
 const app = express();
 const PORT = 3000;
@@ -52,6 +52,16 @@ function toPatientJson(row: PatientRow): Patient {
     birthDate: row.birth_date,
     nationalId: row.national_id,
     active: row.active === 1,
+  };
+}
+
+function toEncountersJson(row: EncounterRow) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    startedAt: row.started_at,
+    chiefComplaint: row.chief_complaint,
+    notes: row.notes,
   };
 }
 
@@ -193,6 +203,100 @@ app.get("/api/patients/:id", (req, response) => {
   response.json(toPatientJson(row));
 });
 
+// Encounters
+app.get("/api/patients/:id/encounters", (req, response) => {
+  const patientId = Number(req.params.id);
+
+  if (!Number.isInteger(patientId) || patientId <= 0) {
+    response.status(400).json({
+      error: "ID do paciente inválido",
+    });
+    return;
+  }
+
+  const patient = db
+    .prepare("SELECT id FROM patients WHERE id = ?")
+    .get(patientId);
+
+  if (!patient) {
+    response.status(404).json({
+      error: "Paciente não encontrado.",
+    });
+    return;
+  }
+
+  const rows = db
+    .prepare("SELECT * FROM encounters WHERE patient_id = ?")
+    .all(patientId) as EncounterRow[];
+
+  response.json(rows.map(toEncountersJson));
+});
+
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+function validateEncounterInput(body: any): string[] {
+  const errors: string[] = [];
+
+  if (isBlank(body?.chiefComplaint)) {
+    errors.push("O campo 'chiefComplaint' é obrigatório.");
+  }
+
+  if (isBlank(body?.startedAt)) {
+    errors.push("O campo 'startedAt' é obrigatório.");
+  } else if (!ISO_DATETIME.test(body.startedAt)) {
+    errors.push("O campo 'startedAt' deve estar no formato AAAA-MM-DDTHH:MM.");
+  }
+
+  return errors;
+}
+
+app.post("/api/patients/:id/encounters", (req, response) => {
+  const patientId = Number(req.params.id);
+
+  if (!Number.isInteger(patientId) || patientId <= 0) {
+    response.status(400).json({
+      error: "ID do paciente inválido",
+    });
+    return;
+  }
+
+  const errors = validateEncounterInput(req.body);
+
+  if (errors.length > 0) {
+    response.status(400).json({ errors });
+    return;
+  }
+
+  const patient = db
+    .prepare("SELECT id FROM patients WHERE id = ?")
+    .get(patientId);
+
+  if (!patient) {
+    response.status(404).json({
+      error: "Paciente não encontrado.",
+    });
+    return;
+  }
+
+  const result = db
+    .prepare(
+      `
+    INSERT INTO encounters (
+      patient_id,
+      started_at,
+      chief_complaint
+    )
+    VALUES (?, ?, ?)
+    `,
+    )
+    .run(patientId, req.body.startedAt, req.body.chiefComplaint.trim());
+
+  const row = db
+    .prepare("SELECT * FROM encounters WHERE id = ?")
+    .get(Number(result.lastInsertRowid)) as EncounterRow;
+
+    response.status(201).json(toEncountersJson(row));
+});
 // ------------------------------------------------------------
 app.listen(PORT, () => {
   console.log(`Mini-Prontuario no ar em http://localhost:${PORT}`);

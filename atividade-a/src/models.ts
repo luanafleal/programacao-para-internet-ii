@@ -13,3 +13,11 @@ export type PatientRow = {
   national_id: string;
   active: number;
 };
+
+export type EncounterRow = {
+  id: number;
+  patient_id: string;
+  started_at: string;
+  chief_complaint: string;
+  notes: string;
+};
