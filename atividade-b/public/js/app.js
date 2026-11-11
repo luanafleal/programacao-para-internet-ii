@@ -5,9 +5,20 @@
  * evento -> ação -> estado -> render -> tela. Sempre nesse sentido.
  * ============================================================
  */
-import { listMedications } from "./api.js";
-import { subscribe, getState, setError, setMedications } from "./state.js";
-import { renderCounter, renderLoading, renderError, renderMedicationList } from "./render.js";
+import { listMedications, createMedication } from "./api.js";
+import {
+  subscribe,
+  getState,
+  setError,
+  setMedications,
+  addMedication,
+} from "./state.js";
+import {
+  renderCounter,
+  renderLoading,
+  renderError,
+  renderMedicationList,
+} from "./render.js";
 
 const medicationListElement = document.querySelector("#medication-list");
 const resultCounterElement = document.querySelector("#result-counter");
@@ -36,7 +47,7 @@ function renderApp(state) {
   }
 
   // PASSO 2: chame renderMedicationList aqui
-  renderMedicationList(state.medications, medicationListElement)
+  renderMedicationList(state.medications, medicationListElement);
   // PASSO 4: chame renderDetail(state, detailPanelElement) aqui
 
   renderCounter(state.medications.length, resultCounterElement);
@@ -63,6 +74,36 @@ start();
 //   ler os inputs, chamar createMedication(), addMedication(),
 //   limpar o formulário, mostrar feedback de sucesso/erro
 // ============================================================
+saveButton.addEventListener("click", async () => {
+  saveButton.disabled = true;
+
+  try {
+    const created = await createMedication({
+      patientName: patientNameInput.value,
+      medicationName: medicationNameInput.value,
+      dosage: dosageInput.value,
+      route: routeInput.value,
+      scheduledAt: scheduledAtInput.value,
+      notes: notesInput.value,
+    });
+
+    addMedication(created);
+
+    formFeedbackElement.textContent = "Prescrição cadastrada com sucesso!";
+
+    // Limpar os campos
+    patientNameInput.value = "";
+    medicationNameInput.value = "";
+    dosageInput.value = "";
+    routeInput.value = "";
+    scheduledAtInput.value = "";
+    notesInput.value = "";
+  } catch (error) {
+    formFeedbackElement.textContent = error.message;
+  } finally {
+    saveButton.disabled = false;
+  }
+});
 
 // ============================================================
 // PASSO 4 — clique num cartão da lista (delegação de evento no <ul>)

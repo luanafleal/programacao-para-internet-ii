@@ -26,11 +26,13 @@ app.get("/api/health", (_request, response) => {
 // ============================================================
 function toMedicationJson(medication: any) {
   return {
+    id: medication.id,
     patientName: medication.patient_name,
     medicationName: medication.medication_name,
     dosage: medication.dosage,
     route: medication.route,
     scheduledAt: medication.scheduled_at,
+    notes: medication.notes,
   };
 }
 
@@ -46,12 +48,74 @@ app.get("/api/medications", (_request, response) => {
 
   response.status(200).json(rows.map(toMedicationJson));
 });
+
 // ============================================================
 // PASSO 3 — POST /api/medications
 //   valide patientName, medicationName, dosage, route, scheduledAt
 //   INSERT parametrizado -> responda 201 com o registro criado
 // ============================================================
+function isBlank(value?: string) {
+  return !value || value.trim() === "";
+}
 
+const ROUTES = ["Oral", "Intravenosa", "Intramuscular"];
+
+function validateMedicationInput(body: any) {
+  const errors = [];
+
+  if (isBlank(body.patientName)) {
+    errors.push("O campo 'patientName' é obrigatório.");
+  }
+
+  if (isBlank(body.medicationName)) {
+    errors.push("O campo 'medicationName' é obrigatório.");
+  }
+
+  if (isBlank(body.dosage)) {
+    errors.push("O campo 'dosage' é obrigatório.");
+  }
+
+  if (!ROUTES.includes(body.route)) {
+    errors.push(`'route' inválido. Opções: ${ROUTES}`);
+  }
+
+  if (isBlank(body.scheduledAt)) {
+    errors.push("O campo 'scheduledAt' é obrigatório.");
+  }
+
+  return errors;
+}
+
+app.post("/api/medications", (request, response) => {
+  const problem = validateMedicationInput(request.body);
+  if (problem.length > 0) {
+    response.status(400).json({ error: problem });
+    return;
+  }
+  const { patientName, medicationName, dosage, route, scheduledAt, notes } =
+    request.body;
+  const result = db
+    .prepare(
+      `INSERT INTO medication_orders
+(patient_name, medication_name, dosage, route,
+scheduled_at, notes)
+VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      patientName,
+      medicationName,
+      dosage,
+      route,
+      scheduledAt,
+      notes ?? null,
+    );
+  // ... buscar o registro criado e responder 201
+  const created = db
+    .prepare("SELECT * FROM medication_orders WHERE id = ?")
+    .get(result.lastInsertRowid);
+
+  response.status(201).json(toMedicationJson(created));
+});
 // ============================================================
 // PASSO 4 — GET /api/medications/:id
 //   db.prepare("SELECT ... WHERE id = ?").get(id)
