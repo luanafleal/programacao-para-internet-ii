@@ -5,7 +5,7 @@
  * evento -> ação -> estado -> render -> tela. Sempre nesse sentido.
  * ============================================================
  */
-import { listMedications, createMedication, getMedication, } from "./api.js";
+import { listMedications, createMedication, getMedication, removeMedication, } from "./api.js";
 import {
   subscribe,
   getState,
@@ -13,6 +13,7 @@ import {
   setMedications,
   addMedication,
   selectMedication,
+  removeMedicationFromState,
   clearSelection,
   setSelectedMedication,
   setDetailError,
@@ -133,10 +134,23 @@ medicationListElement.addEventListener("click", (event) => {
 });
 
 // Detecta o clique no botão Fechar
-detailPanelElement.addEventListener("click", (event) => {
+detailPanelElement.addEventListener("click", async (event) => {
+
   if (event.target.closest("#close-detail-button")) {
     clearSelection();
   }
+
+  if (event.target.closest("#remove-button")) {
+    const state = getState();
+
+    try {
+      await removeMedication(state.selectedId);
+      removeMedicationFromState(state.selectedId);
+    } catch (error) {
+      setDetailError(error.message);
+    }
+  }
+
 });
 
 // ============================================================
