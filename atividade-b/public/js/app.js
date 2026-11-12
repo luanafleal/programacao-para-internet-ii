@@ -5,19 +5,24 @@
  * evento -> ação -> estado -> render -> tela. Sempre nesse sentido.
  * ============================================================
  */
-import { listMedications, createMedication } from "./api.js";
+import { listMedications, createMedication, getMedication, } from "./api.js";
 import {
   subscribe,
   getState,
   setError,
   setMedications,
   addMedication,
+  selectMedication,
+  clearSelection,
+  setSelectedMedication,
+  setDetailError,
 } from "./state.js";
 import {
   renderCounter,
   renderLoading,
   renderError,
   renderMedicationList,
+  renderDetail,
 } from "./render.js";
 
 const medicationListElement = document.querySelector("#medication-list");
@@ -38,19 +43,15 @@ function renderApp(state) {
   if (state.errorMessage) {
     renderError(state.errorMessage, medicationListElement);
     resultCounterElement.textContent = "";
-    return;
-  }
-  if (state.isLoading) {
+  } else if (state.isLoading) {
     renderLoading(medicationListElement);
     resultCounterElement.textContent = "";
-    return;
+  } else {
+    renderMedicationList(state.medications, medicationListElement);
+    renderCounter(state.medications.length, resultCounterElement);
   }
 
-  // PASSO 2: chame renderMedicationList aqui
-  renderMedicationList(state.medications, medicationListElement);
-  // PASSO 4: chame renderDetail(state, detailPanelElement) aqui
-
-  renderCounter(state.medications.length, resultCounterElement);
+  renderDetail(state, detailPanelElement);
 }
 
 subscribe(renderApp);
@@ -110,6 +111,33 @@ saveButton.addEventListener("click", async () => {
 //   event.target.closest('[data-medication-id]') -> selectMedication(id)
 //   -> buscar o detalhe com getMedication(id) -> tratar 404
 // ============================================================
+async function openDetail(id) {
+  selectMedication(id);
+
+  try {
+    const medication = await getMedication(id);
+    setSelectedMedication(medication);
+  } catch (error) {
+    setDetailError(error.message);
+  }
+}
+
+// Detecta o clique em um cartão
+medicationListElement.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-medication-id]");
+
+  if (card) {
+    const id = Number(card.dataset.medicationId);
+    openDetail(id);
+  }
+});
+
+// Detecta o clique no botão Fechar
+detailPanelElement.addEventListener("click", (event) => {
+  if (event.target.closest("#close-detail-button")) {
+    clearSelection();
+  }
+});
 
 // ============================================================
 // PASSO 5 — clique em "Suspender" dentro do painel de detalhe

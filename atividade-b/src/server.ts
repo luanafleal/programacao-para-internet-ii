@@ -121,6 +121,25 @@ VALUES (?, ?, ?, ?, ?, ?)`,
 //   db.prepare("SELECT ... WHERE id = ?").get(id)
 //   undefined -> 404
 // ============================================================
+app.get("/api/medications/:id", (request, response) => {
+  const row = db
+    .prepare(
+      `SELECT id, patient_name, medication_name, dosage,
+      route, scheduled_at, notes
+      FROM medication_orders
+      WHERE id = ?`,
+    )
+    .get(request.params.id);
+
+  if (!row) {
+    response.status(404).json({
+      error: "Prescrição não encontrada.",
+    });
+    return;
+  }
+
+  response.status(200).json(toMedicationJson(row));
+});
 
 // ============================================================
 // PASSO 5 — DELETE /api/medications/:id

@@ -73,3 +73,61 @@ export function renderError(message, container) {
 //   observações (se houver) e um botão <button id="remove-button">Suspender</button>
 //   dica: veja o padrão renderDetail do Mini-Prontuário (gabarito da Atividade 01)
 // ============================================================
+
+export function renderDetail(state, container) {
+  // Nenhuma prescrição selecionada: esconder painel
+  if (state.selectedId === null) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+
+  container.hidden = false;
+
+  // Enquanto busca os dados na API
+  if (state.isLoadingDetail) {
+    container.innerHTML = `
+      <p>Carregando detalhes...</p>
+      <button id="close-detail-button" type="button">Fechar</button>
+    `;
+    return;
+  }
+
+  // Se a API retornar erro, mostrar a mensagem
+  if (state.detailErrorMessage) {
+    container.innerHTML = `
+      <p>${escapeHtml(state.detailErrorMessage)}</p>
+      <button id="close-detail-button" type="button">Fechar</button>
+    `;
+    return;
+  }
+
+  const med = state.selectedMedication;
+
+  if (!med) {
+    container.innerHTML = `
+      <p>Prescrição não encontrada.</p>
+      <button id="close-detail-button" type="button">Fechar</button>
+    `;
+    return;
+  }
+
+  // Mostrar os dados da prescrição
+  container.innerHTML = `
+    <h2>${escapeHtml(med.medicationName)}</h2>
+
+    <p><strong>Paciente:</strong> ${escapeHtml(med.patientName)}</p>
+
+    <p><strong>Dosagem:</strong> ${escapeHtml(med.dosage)}</p>
+
+    <p><strong>Via:</strong> ${escapeHtml(med.route)}</p>
+
+    <p><strong>Horário:</strong> ${escapeHtml(formatDateTime(med.scheduledAt))}</p>
+
+    ${med.notes ? `<p><strong>Observações:</strong> ${escapeHtml(med.notes)}</p>` : ""}
+
+    <button id="close-detail-button" type="button">Fechar</button>
+
+    <button id="remove-button" type="button">Suspender</button>
+  `;
+}

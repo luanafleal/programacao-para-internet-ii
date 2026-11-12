@@ -22,7 +22,7 @@ export async function listMedications() {
   }
   return response.json();
 }
-  
+
 // ============================================================
 // PASSO 3 — implemente createMedication(medication)
 //   method: "POST", headers Content-Type, body: JSON.stringify(medication)
@@ -53,6 +53,22 @@ export async function createMedication(medication) {
 //   fetch(`${MEDICATIONS_URL}/${id}`)
 //   response.status === 404 -> throw new Error("Prescrição não encontrada.")
 // ============================================================
+
+export async function getMedication(id) {
+  const response = await fetch(`${MEDICATIONS_URL}/${id}`);
+
+  const data = await response.json();
+
+  if (response.status === 404) {
+    throw new Error("Prescrição não encontrada.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Não foi possível buscar a prescrição.");
+  }
+
+  return data;
+}
 
 // ============================================================
 // PASSO 5 — implemente removeMedication(id)

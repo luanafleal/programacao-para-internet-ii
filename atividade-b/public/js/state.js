@@ -13,6 +13,7 @@ const state = {
   errorMessage: null,
 
   selectedId: null,
+  detailMedication: null,
   isLoadingDetail: false,
   detailErrorMessage: null,
 };
@@ -37,8 +38,7 @@ export function getState() {
 
 /** Derivado: o registro aberto no painel de detalhe (nunca guardado duas vezes). */
 export function getSelectedMedication() {
-  if (state.selectedId === null) return null;
-  return state.medications.find((m) => m.id === state.selectedId) ?? null;
+  return state.detailMedication;
 }
 
 // ============================================================
@@ -73,6 +73,28 @@ export function addMedication(medication) {
 //   selectMedication: guarda o id, zera erro de detalhe, notify()
 //   clearSelection: volta selectedId para null, notify()
 // ============================================================
+export function selectMedication(id) {
+  state.selectedId = id;
+  state.detailMedication = null;
+  state.isLoadingDetail = true;
+  state.detailErrorMessage = null;
+  notify();
+}
+
+export function clearSelection() {
+  state.selectedId = null;
+  state.detailMedication = null;
+  state.isLoadingDetail = false;
+  state.detailErrorMessage = null;
+  notify();
+}
+
+export function setSelectedMedication(medication) {
+  state.detailMedication = medication;
+  state.isLoadingDetail = false;
+  state.detailErrorMessage = null;
+  notify();
+}
 
 /** Registra uma falha ao buscar o detalhe. */
 export function setDetailError(message) {
